@@ -18,6 +18,31 @@ member needs a doc comment (`public_member_api_docs` is on).
 `flutter` may rewrite `analysis_options.yaml` to add a `build/**` exclude.
 The file already has one; drop that rewrite instead of committing it.
 
+## TeamCity
+
+`.teamcity/settings.kts` (Kotlin DSL, synced by TeamCity's Versioned
+Settings, same as snotra_app's) holds one build config, **Unit Test**:
+`fvm flutter pub get`, `fvm flutter analyze`, `fvm flutter test` on every
+new commit to any branch. There is no release build; the apps fetch
+bifrost through git.
+
+- Flutter comes from fvm, pinned in `.fvmrc` to **3.35.7**: the older of the
+  two apps' pins (Snotra 3.35.7, Metis 3.41.0), so code that passes here
+  builds in both. Do not use Flutter APIs newer than that pin; raise it only
+  together with Snotra's.
+- The VCS root reads the repo with an SSH key uploaded to the TeamCity
+  project as `bifrost-deploy-key` (public half: a read-only deploy key on
+  GitHub). If the root is changed in the TeamCity UI instead, TeamCity
+  writes a patch under `.teamcity/patches/`; fold it into `settings.kts`
+  and delete it, as snotra_app's own patch shows.
+- The **apps'** TeamCity builds (snotra_app's `Unit Test` and release
+  configs, metis_app's `Metis_BuildApp` / `Metis_BuildAppIos`) now also
+  fetch bifrost during `flutter pub get`, over `git@github.com:`. The
+  agent's own SSH key must be allowed to read bifrost, the same way it
+  reads `metis_core`. A GitHub deploy key works for one repository only,
+  so the agent's key cannot be metis_core's deploy key reused; if those
+  builds fail at `pub get` with a git permission error, that is why.
+
 ## What belongs here
 
 Something goes into bifrost once **both** apps use it. App-specific things
